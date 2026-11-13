@@ -1,0 +1,46 @@
+import {backgrounds,colors,purchase} from './shop-model.js?v=3';
+const $=s=>document.querySelector(s);
+export function createStudio({getState,persist,onRefresh,notify}){
+  let mode='hit',tab='tools',strokes=[],activeStroke=null,maskReady=false,maskGeneration=0,maskImage=null;
+  const painting=document.createElement('canvas');painting.id='graffiti';painting.width=660;painting.height=1005;painting.setAttribute('aria-label','角色塗鴉畫布，選擇已解鎖顏色後拖曳繪畫');
+  const ink=document.createElement('canvas');ink.width=painting.width;ink.height=painting.height;
+  const mask=document.createElement('canvas');mask.width=painting.width;mask.height=painting.height;
+  const context=painting.getContext('2d'),inkContext=ink.getContext('2d'),maskContext=mask.getContext('2d');
+  const inventory=$('.inventory');
+  inventory.querySelector('h3').textContent='紓壓百貨';
+  const tabs=document.createElement('div');tabs.className='shop-tabs';tabs.setAttribute('role','group');tabs.setAttribute('aria-label','商店類別');
+  tabs.innerHTML='<button type="button" data-shop-tab="tools">打擊道具</button><button type="button" data-shop-tab="backgrounds">背景</button><button type="button" data-shop-tab="brush">畫筆</button>';
+  inventory.querySelector('.inventory-title').after(tabs);
+  const description=inventory.querySelector('p');description.id='shop-help';
+  const backgroundPanel=document.createElement('div');backgroundPanel.id='background-shop';
+  const brushPanel=document.createElement('div');brushPanel.id='brush-shop';
+  brushPanel.innerHTML='<div class="brush-intro"><b>把文政變成你的畫布</b><p>每個顏色需用金幣解鎖一次，之後無限使用。</p></div><div id="color-shop"></div>';
+  $('#tools').after(backgroundPanel,brushPanel);
+  const controls=document.createElement('div');controls.className='drawing-controls';controls.hidden=true;
+  controls.innerHTML='<div class="drawing-caption"><b>✎ 塗鴉模式</b><span id="brush-current">先解鎖一種筆色</span><button type="button" id="back-hit" class="quiet">返回打擊</button></div><div class="brush-actions"><label for="brush-size">筆粗 <output id="brush-size-value">8</output></label><input id="brush-size" type="range" min="2" max="32" value="8"><button type="button" id="undo-ink" class="quiet">復原一筆</button><button type="button" id="clear-ink" class="quiet">清除塗鴉</button></div><small>在角色身上按住拖曳即可畫畫；塗鴉不會超出人物輪廓。塗鴉模式不會觸發攻擊。</small>';
+  $('#arena').after(controls);
+  const sceneLabel=document.createElement('div');sceneLabel.id='scene-label';$('#arena').append(sceneLabel);
+  function setMode(next){finishStroke();mode=next;$('#target').classList.toggle('drawing-mode',next==='draw');controls.hidden=next!=='draw';$('#arena').classList.toggle('painting-mode',next==='draw');const heading=$('#game h2');heading.firstChild.textContent=next==='draw'?'拿起畫筆，幫':'選擇物品來打';heading.lastChild.textContent=next==='draw'?'塗鴉吧！':'吧！';$('#arena .arena-label').textContent=next==='draw'?'按住拖曳，在角色身上任意塗鴉':'點擊人物 / 空白鍵 揮出道具';render();}
+  tabs.onclick=e=>{const b=e.target.closest('[data-shop-tab]');if(!b)return;tab=b.dataset.shopTab;setMode(tab==='brush'?'draw':'hit');};
+  $('#back-hit').onclick=()=>{tab='tools';setMode('hit');};
+  $('#brush-size').oninput=()=>$('#brush-size-value').textContent=$('#brush-size').value;
+  $('#undo-ink').onclick=()=>{finishStroke();strokes.pop();redraw();updateUndo();};
+  $('#clear-ink').onclick=()=>{finishStroke();strokes=[];redraw();updateUndo();};
+  function updateUndo(){$('#undo-ink').disabled=strokes.length===0;$('#clear-ink').disabled=strokes.length===0;}
+  function choose(kind,item){const state=getState(),result=purchase(state,kind,item.id);if(!result.ok){notify(`還差 ${result.missing} 金幣，先用道具賺取金幣吧！`);return;}if(kind==='background')state.background=item.id;else{finishStroke();state.color=item.id;mode='draw';$('#target').classList.add('drawing-mode');controls.hidden=false;$('#arena').classList.add('painting-mode');}persist();onRefresh();if(result.bought)notify(`已解鎖${item.name}，可以隨時使用！`);}
+  function render(){const s=getState();tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.shopTab===tab)));$('#tools').hidden=tab!=='tools';backgroundPanel.hidden=tab!=='backgrounds';brushPanel.hidden=tab!=='brush';$('#unlocked').textContent=tab==='tools'?`${s.owned.length} / 25`:tab==='backgrounds'?`${s.ownedBackgrounds.length} / 6`:`${s.ownedColors.length} / 20`;description.textContent=tab==='tools'?'25 種紓壓道具，點選解鎖後揮向角色！':tab==='backgrounds'?'5 種全新場景，用金幣解鎖後自由切換。':'20 種顏色，每色分別解鎖。拖曳即可在角色上作畫。';
+    backgroundPanel.replaceChildren(...backgrounds.map(item=>{const owned=s.ownedBackgrounds.includes(item.id),selected=s.background===item.id,b=document.createElement('button');b.type='button';b.className=`scene-card ${owned?'':'locked'} ${selected?'selected':''}`;b.setAttribute('aria-label',owned?`切換${item.name}`:`花費${item.cost}金幣解鎖${item.name}`);b.setAttribute('aria-pressed',String(selected));b.innerHTML=`<span class="scene-preview scene-${item.id}">${item.id==='office'?'🏢':''}</span><span><b>${item.name}</b><small>${item.description}</small><em>${selected?'使用中':owned?'已解鎖':`🔒 ${item.cost} ◉`}</em></span>`;b.onclick=()=>choose('background',item);return b;}));
+    $('#color-shop').replaceChildren(...colors.map(item=>{const owned=s.ownedColors.includes(item.id),selected=s.color===item.id,b=document.createElement('button');b.type='button';b.className=`color-card ${owned?'':'locked'} ${selected?'selected':''}`;b.setAttribute('aria-label',owned?`使用${item.name}畫筆`:`花費${item.cost}金幣解鎖${item.name}畫筆`);b.setAttribute('aria-pressed',String(selected));b.innerHTML=`<span class="swatch" style="--swatch:${item.hex}">${owned?(selected?'✓':''):'🔒'}</span><b>${item.name}</b><small>${owned?(selected?'使用中':'已解鎖'):item.cost+' ◉'}</small>`;b.onclick=()=>choose('color',item);return b;}));
+    $('#arena').dataset.background=s.background;sceneLabel.textContent=backgrounds.find(b=>b.id===s.background).name;const color=colors.find(c=>c.id===s.color);$('#brush-current').textContent=color?`${color.name} · 拖曳角色開始畫畫`:'先解鎖一種筆色';$('#brush-current').style.color=color&&color.id!=='color-1'?color.hex:'';updateUndo();
+  }
+  function redraw(){inkContext.clearRect(0,0,ink.width,ink.height);for(const stroke of strokes){inkContext.lineCap='round';inkContext.lineJoin='round';inkContext.strokeStyle=stroke.hex;inkContext.fillStyle=stroke.hex;inkContext.lineWidth=stroke.width;const [first,...rest]=stroke.points;if(!rest.length){inkContext.beginPath();inkContext.arc(first.x,first.y,stroke.width/2,0,Math.PI*2);inkContext.fill();}else{inkContext.beginPath();inkContext.moveTo(first.x,first.y);for(const p of rest)inkContext.lineTo(p.x,p.y);inkContext.stroke();}}context.clearRect(0,0,painting.width,painting.height);context.globalCompositeOperation='source-over';context.drawImage(ink,0,0);context.globalCompositeOperation='destination-in';context.drawImage(mask,0,0);context.globalCompositeOperation='source-over';}
+  function point(e){const r=painting.getBoundingClientRect();return{x:Math.max(0,Math.min(painting.width,(e.clientX-r.left)/r.width*painting.width)),y:Math.max(0,Math.min(painting.height,(e.clientY-r.top)/r.height*painting.height))};}
+  function finishStroke(){activeStroke=null;updateUndo();}
+  painting.onpointerdown=e=>{if(mode!=='draw'||activeStroke)return;e.preventDefault();e.stopPropagation();const color=colors.find(c=>c.id===getState().color);if(!color||!getState().ownedColors.includes(color.id)){notify('先用金幣解鎖一種畫筆顏色。');return;}if(!maskReady){notify('人物輪廓載入中，請稍候。');return;}if(e.button!==0&&e.pointerType==='mouse')return;if(strokes.length>=300){notify('已達 300 筆，請復原或清除後繼續。');return;}const width=Number($('#brush-size').value)*painting.width/painting.getBoundingClientRect().width;activeStroke={hex:color.hex,width,points:[point(e)]};strokes.push(activeStroke);painting.setPointerCapture(e.pointerId);redraw();};
+  painting.onpointermove=e=>{if(!activeStroke)return;e.preventDefault();const p=point(e),last=activeStroke.points.at(-1);if(Math.hypot(p.x-last.x,p.y-last.y)<1)return;activeStroke.points.push(p);redraw();};
+  painting.onpointerup=finishStroke;painting.onpointercancel=finishStroke;painting.onlostpointercapture=finishStroke;painting.onclick=e=>{if(mode==='draw'){e.preventDefault();e.stopPropagation();}};
+  function reset(image){finishStroke();strokes=[];maskReady=false;maskImage=null;const generation=++maskGeneration;$('#person').append(painting);maskContext.clearRect(0,0,mask.width,mask.height);redraw();const img=new Image();img.onload=()=>{if(generation!==maskGeneration)return;maskImage=img;rebuildMask();};img.onerror=()=>notify('人物輪廓載入失敗，請重新選擇角色。');img.src=image||'./character.svg';tab='tools';setMode('hit');}
+  function rebuildMask(){if(!maskImage)return;const width=painting.clientWidth,height=painting.clientHeight;if(!width||!height)return;const scale=Math.min(width/maskImage.naturalWidth,height/maskImage.naturalHeight),w=maskImage.naturalWidth*scale,h=maskImage.naturalHeight*scale;maskContext.clearRect(0,0,mask.width,mask.height);maskContext.drawImage(maskImage,(width-w)/2/width*mask.width,(height-h)/height*mask.height,w/width*mask.width,h/height*mask.height);maskReady=true;redraw();}
+  const resizeObserver=new ResizeObserver(rebuildMask);resizeObserver.observe($('#person'));
+  render();return {render,reset,isPainting:()=>mode==='draw'};
+}

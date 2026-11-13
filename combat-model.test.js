@@ -13,6 +13,6 @@ test('recovery passes all stages and reaches zero without going negative',()=>{
 });
 test('recovery depends on elapsed time and stronger tools cause more injury',()=>{
   assert.equal(recoverInjury(80,1),recoverInjury(recoverInjury(80,.5),.5));
-  assert.ok(addInjury(0,12)>addInjury(0,1));assert.equal(profiles.length,15);
-  assert.equal(new Set(profiles.map(p=>p[0])).size,15);
+  assert.ok(addInjury(0,12)>addInjury(0,1));assert.equal(profiles.length,25);
+  assert.equal(new Set(profiles.map(p=>p[0])).size,25);
 });
