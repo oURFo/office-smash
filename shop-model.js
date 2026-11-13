@@ -20,6 +20,12 @@ export const colors = [
   ['午夜藍','#243a79'],['薰衣草','#aa92db'],['葡萄紫','#7946ad'],['桃紅','#dc4c9c'],
   ['櫻花粉','#f49eb5'],['可可棕','#865744'],['銀灰','#a6adb8'],['古銅金','#bc903e'],
 ].map(([name,hex],i)=>({id:`color-${i}`,name,hex,cost:40+i*10}));
+export const stamps = [
+  ['poop','大便',80], ['bump','腫包',100], ['kiss','唇印',120],
+  ['panda','熊貓眼',140], ['bandage','OK 繃',160], ['angry','怒氣符號',180],
+  ['sweat','冒汗',200], ['star','暈眩星星',230], ['pig','豬鼻子',260],
+  ['mustache','八字鬍',300], ['fail','不及格',340], ['overtime','加班認證',380],
+].map(([id,name,cost])=>({id,name,cost,src:`./assets/stamp-${id}.svg`}));
 const validCoins=n=>Number.isSafeInteger(n)&&n>=0;
 const cleanOwned=(items,valid,required=[])=>[...new Set([...required,...(Array.isArray(items)?items.filter(valid):[])])];
 export function restoreState(raw){
@@ -30,15 +36,18 @@ export function restoreState(raw){
     hits:validCoins(s.hits)?s.hits:0,best:validCoins(s.best)?s.best:0,
     ownedBackgrounds:cleanOwned(s.ownedBackgrounds,id=>backgroundIds.includes(id),['office']),
     ownedColors:cleanOwned(s.ownedColors,id=>colorIds.includes(id)),
-    background:'office',color:null};
+    ownedStamps:cleanOwned(s.ownedStamps,id=>stamps.some(item=>item.id===id)),
+    background:'office',color:null,stamp:null};
   if(result.ownedBackgrounds.includes(s.background))result.background=s.background;
   if(result.ownedColors.includes(s.color))result.color=s.color;
+  if(result.ownedStamps.includes(s.stamp))result.stamp=s.stamp;
   return result;
 }
 export function purchase(state,kind,id,toolCatalog){
   const config=kind==='tool'?{list:toolCatalog,key:'owned',find:(_,i)=>i===id}:
     kind==='background'?{list:backgrounds,key:'ownedBackgrounds',find:item=>item.id===id}:
-    kind==='color'?{list:colors,key:'ownedColors',find:item=>item.id===id}:null;
+    kind==='color'?{list:colors,key:'ownedColors',find:item=>item.id===id}:
+    kind==='stamp'?{list:stamps,key:'ownedStamps',find:item=>item.id===id}:null;
   if(!config)return {ok:false,reason:'invalid'};
   const item=config.list.find(config.find);if(!item)return {ok:false,reason:'invalid'};
   if(state[config.key].includes(id))return {ok:true,bought:false};

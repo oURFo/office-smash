@@ -1,6 +1,6 @@
-import {resetCombat, toolMarkup, strike, dropCoins} from './combat.js?v=3';
-import {extraTools,restoreState,purchase} from './shop-model.js?v=3';
-import {createStudio} from './studio.js?v=3';
+import {resetCombat, toolMarkup, strike, dropCoins} from './combat.js?v=4';
+import {extraTools,restoreState,purchase} from './shop-model.js?v=4';
+import {createStudio} from './studio.js?v=4';
 const $ = s => document.querySelector(s);
 const catalog = [ ['巴掌','🖐️',0,1],['拖鞋','🩴',0,1],['文件夾','📁',15,2],['咖啡杯','☕',25,2],['報紙','🗞️',40,3],['鍵盤','⌨️',60,3],['便當','🍱',85,4],['電話','☎️',110,4],['公事包','💼',150,5],['雨傘','☂️',190,5],['平底鍋','🍳',240,6],['掃把','🧹',300,7],['拳套','🥊',380,8],['充氣槌','🔨',460,9],['火箭','🚀',600,12], ...extraTools ];
 let state=restoreState();

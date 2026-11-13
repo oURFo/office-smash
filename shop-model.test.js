@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
-import {extraTools,backgrounds,colors,restoreState,purchase} from './shop-model.js';
+import {extraTools,backgrounds,colors,stamps,restoreState,purchase} from './shop-model.js';
 import {profiles} from './combat-model.js';
 const toolCatalog=Array.from({length:15},()=>['existing','',10,1]).concat(extraTools);
 test('old saves retain coins, unlocked tools, hits and add new defaults',()=>{
@@ -41,4 +41,23 @@ test('every added tool has combat profile and vector art, all scenes have assets
   assert.equal(new Set(colors.map(c=>c.hex)).size,20);
   for(let i=15;i<25;i++)assert.ok(existsSync(new URL(`./assets/tool-${i}.svg`,import.meta.url)));
   for(const bg of backgrounds.slice(1))assert.match(readFileSync(new URL(`./assets/bg-${bg.id}.svg`,import.meta.url),'utf8'),/<svg/);
+});
+test('all stamps cost coins, can be individually unlocked and restore without double charging',()=>{
+  const state=restoreState({coins:10000,owned:[0,1,15],ownedColors:['color-2'],ownedBackgrounds:['office','space']});
+  assert.deepEqual(state.ownedStamps,[]);assert.equal(state.stamp,null);
+  assert.ok(stamps.length>=10);assert.equal(new Set(stamps.map(s=>s.id)).size,stamps.length);
+  let spent=0;
+  for(const stamp of stamps){assert.ok(stamp.cost>0);assert.ok(existsSync(new URL(stamp.src,import.meta.url)));assert.equal(purchase(state,'stamp',stamp.id).bought,true);spent+=stamp.cost;assert.equal(purchase(state,'stamp',stamp.id).bought,false);}
+  assert.equal(state.coins,10000-spent);state.stamp='poop';
+  const restored=restoreState(JSON.parse(JSON.stringify(state)));
+  assert.equal(restored.ownedStamps.length,stamps.length);assert.equal(restored.stamp,'poop');
+  assert.ok(restored.owned.includes(15));assert.deepEqual(restored.ownedColors,['color-2']);
+  assert.ok(restored.ownedBackgrounds.includes('space'));
+});
+test('locked or invalid stamps cannot be selected or bought without sufficient coins',()=>{
+  const state=restoreState({coins:79,ownedStamps:['bump','unknown','bump'],stamp:'poop'});
+  assert.deepEqual(state.ownedStamps,['bump']);assert.equal(state.stamp,null);
+  assert.deepEqual(purchase(state,'stamp','poop'),{ok:false,reason:'funds',missing:1});
+  assert.equal(state.coins,79);assert.deepEqual(state.ownedStamps,['bump']);
+  assert.equal(purchase(state,'stamp','unknown').ok,false);
 });
