@@ -12,6 +12,9 @@ export const backgrounds = [
   {id:'sakura',name:'櫻花會議室',cost:550,icon:'🌸',description:'春日花景與木質和風空間'},
   {id:'space',name:'太空辦公艙',cost:800,icon:'🪐',description:'星球、環形舷窗與宇宙星海'},
   {id:'arcade',name:'電競工作室',cost:1000,icon:'🎮',description:'霓虹燈、音響與遊戲機台'},
+  {id:'toilet',name:'廁所馬桶',cost:320,icon:'🚽',description:'磁磚、洗手台與專屬馬桶包廂'},
+  {id:'tribe',name:'原始部落',cost:650,icon:'⛺',description:'茅草屋、木柵欄與營火的史前營地'},
+  {id:'prison',name:'監獄',cost:900,icon:'🔒',description:'鐵欄、石牆與牢房裡的放風時間'},
 ];
 export const colors = [
   ['炭黑','#252833'],['雪白','#ffffff'],['朱紅','#e5493b'],['蜜橘','#f18a35'],
@@ -25,7 +28,7 @@ export const stamps = [
   ['panda','熊貓眼',140], ['bandage','OK 繃',160], ['angry','怒氣符號',180],
   ['sweat','冒汗',200], ['star','暈眩星星',230], ['pig','豬鼻子',260],
   ['mustache','八字鬍',300], ['fail','不及格',340], ['overtime','加班認證',380],
-].map(([id,name,cost])=>({id,name,cost,src:`./assets/stamp-${id}.svg`}));
+].map(([id,name,cost])=>({id,name,cost,src:`./assets/stamp-${id}.svg?v=5`}));
 const validCoins=n=>Number.isSafeInteger(n)&&n>=0;
 const cleanOwned=(items,valid,required=[])=>[...new Set([...required,...(Array.isArray(items)?items.filter(valid):[])])];
 export function restoreState(raw){

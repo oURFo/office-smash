@@ -18,7 +18,7 @@ test('insufficient funds never unlock or deduct; buying the same item never doub
   assert.equal(state.coins,0);assert.equal(purchase(state,'color','color-0').bought,false);
   assert.equal(state.coins,0);assert.deepEqual(state.ownedColors,['color-0']);
 });
-test('all 10 tools, 5 scenes and 20 individual colors can be purchased and restored',()=>{
+test('all paid tools, scenes and 20 individual colors can be purchased and restored',()=>{
   const state=restoreState({coins:50000});let total=0;
   extraTools.forEach((item,i)=>{assert.ok(item[2]>0);assert.equal(purchase(state,'tool',i+15,toolCatalog).ok,true);total+=item[2];});
   backgrounds.slice(1).forEach(item=>{assert.ok(item.cost>0);assert.ok(purchase(state,'background',item.id).ok);total+=item.cost;});
@@ -26,7 +26,7 @@ test('all 10 tools, 5 scenes and 20 individual colors can be purchased and resto
   state.background='space';state.color='color-19';
   const restored=restoreState(JSON.parse(JSON.stringify(state)));
   assert.equal(restored.coins,50000-total);assert.equal(restored.owned.length,12);
-  assert.equal(restored.ownedBackgrounds.length,6);assert.equal(restored.ownedColors.length,20);
+  assert.equal(restored.ownedBackgrounds.length,backgrounds.length);assert.equal(restored.ownedColors.length,20);
   assert.equal(restored.background,'space');assert.equal(restored.color,'color-19');
 });
 test('corrupt entries and locked selections are removed while paid unlocks remain',()=>{

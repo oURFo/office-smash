@@ -1,4 +1,4 @@
-import {injuryStage, addInjury, recoverInjury, profiles} from './combat-model.js?v=4';
+import {injuryStage, addInjury, recoverInjury, profiles} from './combat-model.js?v=5';
 const $ = s => document.querySelector(s);
 let injury=0, lastDamage=0, previousTick=performance.now(), photo=false, poseTimer, drawnStage=-1;
 const status=document.createElement('div');status.id='injury-status';status.innerHTML='<span id="injury-label">精神飽滿</span><div class="injury-track"><i></i></div><small>停手 3 秒後逐漸恢復</small>';$('#arena').append(status);
